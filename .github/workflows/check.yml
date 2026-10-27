@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+    inputs:
+      test:
+        description: "ابعت إشعار تجربة"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -18,6 +23,9 @@ jobs:
           python-version: "3.12"
       - run: pip install requests
       - run: python check.py
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_TEST: ${{ inputs.test }}
       - name: Save results
         run: |
           git config user.name "bot"
