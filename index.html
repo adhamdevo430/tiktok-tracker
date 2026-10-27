@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>متابعة الحساب</title>
+<style>
+  :root {
+    --bg: #0f1115; --card: #1a1d24; --text: #f2f4f8; --muted: #8b93a1;
+    --up: #2ecc71; --down: #ff5c5c; --line: #262a33;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f4f5f7; --card: #ffffff; --text: #14161a; --muted: #6b7280; --line: #e5e7eb; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }
+  body { padding: env(safe-area-inset-top, 0px) 16px calc(env(safe-area-inset-bottom, 0px) + 24px); max-width: 560px; margin: 0 auto; }
+  header { padding: 20px 0 8px; }
+  h1 { font-size: 18px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .card { background: var(--card); border-radius: 16px; padding: 16px; text-align: center; }
+  .card .label { color: var(--muted); font-size: 13px; }
+  .card .value { font-size: 34px; font-weight: 700; margin-top: 6px; }
+  h2 { font-size: 15px; margin: 24px 0 8px; }
+  .day { color: var(--muted); font-size: 13px; margin: 16px 0 6px; }
+  .item { background: var(--card); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .item .what { font-size: 14px; }
+  .item .nums { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .item .time { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .empty, #status { color: var(--muted); font-size: 14px; text-align: center; padding: 16px 0; }
+  button { background: var(--card); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px 14px; font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>متابعة الحساب @mariamelshahed5</h1>
+  <div class="sub" id="checked">جاري التحميل…</div>
+</header>
+
+<div class="cards">
+  <div class="card"><div class="label">المتابعين</div><div class="value" id="followers">–</div></div>
+  <div class="card"><div class="label">بتتابعهم</div><div class="value" id="following">–</div></div>
+</div>
+
+<div style="text-align:center"><button id="refresh">تحديث الآن</button></div>
+<div id="status"></div>
+
+<h2>سجل التغييرات</h2>
+<div id="log"></div>
+
+<script>
+const tz = "Africa/Cairo";
+const fmtDay = new Intl.DateTimeFormat("ar-EG", { timeZone: tz, weekday: "long", day: "numeric", month: "long" });
+const fmtTime = new Intl.DateTimeFormat("ar-EG", { timeZone: tz, hour: "numeric", minute: "2-digit" });
+const num = n => Number(n).toLocaleString("ar-EG");
+
+async function getJSON(path) {
+  const r = await fetch(path + "?t=" + Date.now(), { cache: "no-store" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+function label(e) {
+  const up = e.change === "up";
+  if (e.type === "followers") return up ? "زاد متابعين" : "نقص متابعين";
+  return up ? "زاد عدد اللي بتتابعهم" : "نقص عدد اللي بتتابعهم";
+}
+
+function render(latest, log) {
+  document.getElementById("followers").textContent = num(latest.followers);
+  document.getElementById("following").textContent = num(latest.following);
+  const t = new Date(latest.checked_at);
+  document.getElementById("checked").textContent =
+    "آخر فحص: " + fmtDay.format(t) + " " + fmtTime.format(t);
+
+  const box = document.getElementById("log");
+  box.textContent = "";
+  if (!log.length) {
+    const d = document.createElement("div");
+    d.className = "empty";
+    d.textContent = "لسه مفيش تغييرات متسجلة";
+    box.appendChild(d);
+    return;
+  }
+  let lastDay = "";
+  [...log].reverse().forEach(e => {
+    const when = new Date(e.time);
+    const day = fmtDay.format(when);
+    if (day !== lastDay) {
+      const h = document.createElement("div");
+      h.className = "day";
+      h.textContent = day;
+      box.appendChild(h);
+      lastDay = day;
+    }
+    const item = document.createElement("div");
+    item.className = "item";
+
+    const left = document.createElement("div");
+    const what = document.createElement("div");
+    what.className = "what " + e.change;
+    what.textContent = (e.change === "up" ? "▲ " : "▼ ") + label(e);
+    const nums = document.createElement("div");
+    nums.className = "nums";
+    nums.textContent = num(e.from) + " ← " + num(e.to);
+    left.append(what, nums);
+
+    const time = document.createElement("div");
+    time.className = "time";
+    time.textContent = fmtTime.format(when);
+
+    item.append(left, time);
+    box.appendChild(item);
+  });
+}
+
+async function load() {
+  const status = document.getElementById("status");
+  status.textContent = "";
+  try {
+    const [latest, log] = await Promise.all([
+      getJSON("data/latest.json"),
+      getJSON("data/log.json").catch(() => [])
+    ]);
+    render(latest, log);
+  } catch (err) {
+    status.textContent = "تعذر تحميل البيانات، اتأكد من النت وحاول تاني";
+  }
+}
+
+document.getElementById("refresh").addEventListener("click", load);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+setInterval(load, 30000);
+load();
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
