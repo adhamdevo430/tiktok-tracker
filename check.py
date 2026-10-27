@@ -19,6 +19,12 @@ DATA_DIR = "data"
 LATEST = os.path.join(DATA_DIR, "latest.json")
 LOG = os.path.join(DATA_DIR, "log.json")
 
+# أرقام بنسجل كل تغيير فيها
+NUMERIC = ["followers", "following", "videos"]
+# نصوص بنسجل تغييرها
+TEXT = ["name", "bio"]
+# اللايكات بنعرض الرقم الحالي بس من غير تسجيل كل تغيير
+
 
 def fetch():
     r = requests.get(URL, headers=HEADERS, timeout=30)
@@ -34,10 +40,16 @@ def fetch():
         sys.exit("FAIL: data block not found in page")
     try:
         data = json.loads(m.group(1))
-        stats = data["__DEFAULT_SCOPE__"]["webapp.user-detail"]["userInfo"]["stats"]
+        info = data["__DEFAULT_SCOPE__"]["webapp.user-detail"]["userInfo"]
+        stats = info["stats"]
+        user = info.get("user") or {}
         return {
             "followers": stats["followerCount"],
             "following": stats["followingCount"],
+            "videos": stats.get("videoCount"),
+            "likes": stats.get("heartCount", stats.get("heart")),
+            "name": user.get("nickname"),
+            "bio": user.get("signature"),
         }
     except (KeyError, TypeError, ValueError):
         sys.exit("FAIL: page structure changed or account data missing")
@@ -61,18 +73,29 @@ def main():
     log = load(LOG, [])
 
     if old is not None:
-        for key in ("followers", "following"):
-            if new[key] != old[key]:
-                log.append(
-                    {
-                        "time": now,
-                        "type": key,
-                        "change": "up" if new[key] > old[key] else "down",
-                        "from": old[key],
-                        "to": new[key],
-                    }
-                )
-                print("Change:", key, old[key], "->", new[key])
+        for key in NUMERIC:
+            o, n = old.get(key), new.get(key)
+            if o is None or n is None or o == n:
+                continue
+            log.append(
+                {
+                    "time": now,
+                    "type": key,
+                    "change": "up" if n > o else "down",
+                    "from": o,
+                    "to": n,
+                }
+            )
+            print("Change:", key, o, "->", n)
+
+        for key in TEXT:
+            o, n = old.get(key), new.get(key)
+            if o is None or n is None or o == n:
+                continue
+            log.append(
+                {"time": now, "type": key, "change": "changed", "from": o, "to": n}
+            )
+            print("Change:", key)
 
     new["checked_at"] = now
     with open(LATEST, "w", encoding="utf-8") as f:

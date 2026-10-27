@@ -11,10 +11,10 @@
 <style>
   :root {
     --bg: #0f1115; --card: #1a1d24; --text: #f2f4f8; --muted: #8b93a1;
-    --up: #2ecc71; --down: #ff5c5c; --line: #262a33;
+    --up: #2ecc71; --down: #ff5c5c; --line: #262a33; --accent: #4da3ff;
   }
   @media (prefers-color-scheme: light) {
-    :root { --bg: #f4f5f7; --card: #ffffff; --text: #14161a; --muted: #6b7280; --line: #e5e7eb; }
+    :root { --bg: #f4f5f7; --card: #ffffff; --text: #14161a; --muted: #6b7280; --line: #e5e7eb; --accent: #1a73e8; }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
@@ -22,37 +22,59 @@
   body { padding: env(safe-area-inset-top, 0px) 16px calc(env(safe-area-inset-bottom, 0px) + 24px); max-width: 560px; margin: 0 auto; }
   header { padding: 20px 0 8px; }
   h1 { font-size: 18px; margin: 0; }
-  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .handle { color: var(--muted); font-size: 13px; margin-top: 2px; direction: ltr; text-align: right; }
+  .bio { font-size: 13px; margin-top: 8px; white-space: pre-wrap; word-break: break-word; }
+  .sub { color: var(--muted); font-size: 12px; margin-top: 8px; }
   .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
-  .card { background: var(--card); border-radius: 16px; padding: 16px; text-align: center; }
+  .card { background: var(--card); border-radius: 16px; padding: 14px; text-align: center; }
   .card .label { color: var(--muted); font-size: 13px; }
-  .card .value { font-size: 34px; font-weight: 700; margin-top: 6px; }
+  .card .value { font-size: 30px; font-weight: 700; margin-top: 6px; }
+  .panel { background: var(--card); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+  .panel h2 { margin: 0 0 10px; }
   h2 { font-size: 15px; margin: 24px 0 8px; }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 14px; border-top: 1px solid var(--line); }
+  .row:first-of-type { border-top: 0; }
+  .row .vals { display: flex; gap: 12px; }
   .day { color: var(--muted); font-size: 13px; margin: 16px 0 6px; }
   .item { background: var(--card); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
     display: flex; justify-content: space-between; align-items: center; gap: 10px; }
   .item .what { font-size: 14px; }
-  .item .nums { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .item .nums { color: var(--muted); font-size: 12px; margin-top: 2px; word-break: break-word; }
   .item .time { font-size: 13px; color: var(--muted); white-space: nowrap; }
-  .up { color: var(--up); } .down { color: var(--down); }
-  .empty, #status { color: var(--muted); font-size: 14px; text-align: center; padding: 16px 0; }
+  .up { color: var(--up); } .down { color: var(--down); } .changed { color: var(--accent); }
+  .empty, #status { color: var(--muted); font-size: 14px; text-align: center; padding: 12px 0; }
   button { background: var(--card); color: var(--text); border: 1px solid var(--line);
     border-radius: 10px; padding: 8px 14px; font-size: 14px; }
+  svg.chart { width: 100%; height: auto; display: block; }
+  svg.chart text { fill: var(--muted); font-size: 10px; }
+  svg.chart polyline { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+  svg.chart circle { fill: var(--accent); }
+  svg.chart line { stroke: var(--line); stroke-width: 1; }
 </style>
 </head>
 <body>
 <header>
-  <h1>متابعة الحساب @mariamelshahed5</h1>
+  <h1 id="name">متابعة الحساب</h1>
+  <div class="handle">@mariamelshahed5</div>
+  <div class="bio" id="bio"></div>
   <div class="sub" id="checked">جاري التحميل…</div>
 </header>
 
 <div class="cards">
   <div class="card"><div class="label">المتابعين</div><div class="value" id="followers">–</div></div>
   <div class="card"><div class="label">بتتابعهم</div><div class="value" id="following">–</div></div>
+  <div class="card"><div class="label">الفيديوهات</div><div class="value" id="videos">–</div></div>
+  <div class="card"><div class="label">اللايكات</div><div class="value" id="likes">–</div></div>
 </div>
 
 <div style="text-align:center"><button id="refresh">تحديث الآن</button></div>
 <div id="status"></div>
+
+<h2>ملخص النهارده</h2>
+<div class="panel" id="summary"></div>
+
+<h2>المتابعين مع الوقت</h2>
+<div class="panel" id="chart"></div>
 
 <h2>سجل التغييرات</h2>
 <div id="log"></div>
@@ -61,7 +83,9 @@
 const tz = "Africa/Cairo";
 const fmtDay = new Intl.DateTimeFormat("ar-EG", { timeZone: tz, weekday: "long", day: "numeric", month: "long" });
 const fmtTime = new Intl.DateTimeFormat("ar-EG", { timeZone: tz, hour: "numeric", minute: "2-digit" });
-const num = n => Number(n).toLocaleString("ar-EG");
+const fmtKey = new Intl.DateTimeFormat("en-CA", { timeZone: tz });
+const num = n => (n === null || n === undefined) ? "–" : Number(n).toLocaleString("ar-EG");
+const SVG = "http://www.w3.org/2000/svg";
 
 async function getJSON(path) {
   const r = await fetch(path + "?t=" + Date.now(), { cache: "no-store" });
@@ -69,26 +93,126 @@ async function getJSON(path) {
   return r.json();
 }
 
-function label(e) {
-  const up = e.change === "up";
-  if (e.type === "followers") return up ? "زاد متابعين" : "نقص متابعين";
-  return up ? "زاد عدد اللي بتتابعهم" : "نقص عدد اللي بتتابعهم";
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
 }
 
-function render(latest, log) {
-  document.getElementById("followers").textContent = num(latest.followers);
-  document.getElementById("following").textContent = num(latest.following);
-  const t = new Date(latest.checked_at);
-  document.getElementById("checked").textContent =
-    "آخر فحص: " + fmtDay.format(t) + " " + fmtTime.format(t);
+function label(e) {
+  const up = e.change === "up";
+  switch (e.type) {
+    case "followers": return up ? "زاد متابعين" : "نقص متابعين";
+    case "following": return up ? "زاد عدد اللي بتتابعهم" : "نقص عدد اللي بتتابعهم";
+    case "videos": return up ? "نزل فيديو جديد" : "اتحذف فيديو";
+    case "name": return "غيّر الاسم";
+    case "bio": return "غيّر البايو";
+    default: return e.type;
+  }
+}
 
+function renderSummary(log) {
+  const box = document.getElementById("summary");
+  box.textContent = "";
+  const today = fmtKey.format(new Date());
+  const ev = log.filter(e => fmtKey.format(new Date(e.time)) === today);
+  if (!ev.length) {
+    box.appendChild(el("div", "empty", "لسه مفيش تغييرات النهارده"));
+    return;
+  }
+  const agg = type => {
+    let up = 0, down = 0;
+    ev.filter(e => e.type === type).forEach(e => {
+      const d = e.to - e.from;
+      if (d > 0) up += d; else down += -d;
+    });
+    return { up, down };
+  };
+  const addRow = (title, up, down) => {
+    const row = el("div", "row");
+    row.appendChild(el("span", "", title));
+    const vals = el("span", "vals");
+    vals.appendChild(el("span", "up", "+" + num(up)));
+    vals.appendChild(el("span", "down", "−" + num(down)));
+    row.appendChild(vals);
+    box.appendChild(row);
+  };
+  const f = agg("followers"), g = agg("following"), v = agg("videos");
+  addRow("متابعين", f.up, f.down);
+  addRow("بتتابعهم", g.up, g.down);
+  addRow("فيديوهات", v.up, v.down);
+  const changes = ev.filter(e => e.type === "name" || e.type === "bio").length;
+  if (changes) {
+    const row = el("div", "row");
+    row.appendChild(el("span", "", "تغييرات في الاسم أو البايو"));
+    row.appendChild(el("span", "changed", num(changes)));
+    box.appendChild(row);
+  }
+}
+
+function renderChart(latest, log) {
+  const box = document.getElementById("chart");
+  box.textContent = "";
+  const ev = log.filter(e => e.type === "followers");
+  if (!ev.length) {
+    box.appendChild(el("div", "empty", "الرسم هيظهر أول ما يحصل تغيير في المتابعين"));
+    return;
+  }
+  const pts = [{ t: new Date(ev[0].time).getTime(), v: ev[0].from }];
+  ev.forEach(e => pts.push({ t: new Date(e.time).getTime(), v: e.to }));
+  pts.push({ t: new Date(latest.checked_at).getTime(), v: latest.followers });
+
+  const W = 320, H = 130, L = 34, R = 8, T = 10, B = 18;
+  const tMin = pts[0].t, tMax = Math.max(pts[pts.length - 1].t, tMin + 1);
+  let vMin = Math.min(...pts.map(p => p.v)), vMax = Math.max(...pts.map(p => p.v));
+  if (vMin === vMax) { vMin -= 1; vMax += 1; }
+  const x = t => L + (t - tMin) / (tMax - tMin) * (W - L - R);
+  const y = v => T + (1 - (v - vMin) / (vMax - vMin)) * (H - T - B);
+
+  const svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("class", "chart");
+  svg.setAttribute("direction", "ltr");
+
+  [vMin, vMax].forEach(v => {
+    const ln = document.createElementNS(SVG, "line");
+    ln.setAttribute("x1", L); ln.setAttribute("x2", W - R);
+    ln.setAttribute("y1", y(v)); ln.setAttribute("y2", y(v));
+    svg.appendChild(ln);
+    const tx = document.createElementNS(SVG, "text");
+    tx.setAttribute("x", L - 4); tx.setAttribute("y", y(v) + 3);
+    tx.setAttribute("text-anchor", "end");
+    tx.textContent = Math.round(v);
+    svg.appendChild(tx);
+  });
+
+  const line = document.createElementNS(SVG, "polyline");
+  line.setAttribute("points", pts.map(p => x(p.t).toFixed(1) + "," + y(p.v).toFixed(1)).join(" "));
+  svg.appendChild(line);
+
+  const last = pts[pts.length - 1];
+  const dot = document.createElementNS(SVG, "circle");
+  dot.setAttribute("cx", x(last.t)); dot.setAttribute("cy", y(last.v)); dot.setAttribute("r", 3);
+  svg.appendChild(dot);
+
+  const d1 = document.createElementNS(SVG, "text");
+  d1.setAttribute("x", L); d1.setAttribute("y", H - 4);
+  d1.textContent = fmtDay.format(new Date(tMin));
+  svg.appendChild(d1);
+  const d2 = document.createElementNS(SVG, "text");
+  d2.setAttribute("x", W - R); d2.setAttribute("y", H - 4); d2.setAttribute("text-anchor", "end");
+  d2.textContent = fmtDay.format(new Date(tMax));
+  svg.appendChild(d2);
+
+  box.appendChild(svg);
+}
+
+function renderLog(log) {
   const box = document.getElementById("log");
   box.textContent = "";
   if (!log.length) {
-    const d = document.createElement("div");
-    d.className = "empty";
-    d.textContent = "لسه مفيش تغييرات متسجلة";
-    box.appendChild(d);
+    box.appendChild(el("div", "empty", "لسه مفيش تغييرات متسجلة"));
     return;
   }
   let lastDay = "";
@@ -96,31 +220,35 @@ function render(latest, log) {
     const when = new Date(e.time);
     const day = fmtDay.format(when);
     if (day !== lastDay) {
-      const h = document.createElement("div");
-      h.className = "day";
-      h.textContent = day;
-      box.appendChild(h);
+      box.appendChild(el("div", "day", day));
       lastDay = day;
     }
-    const item = document.createElement("div");
-    item.className = "item";
-
-    const left = document.createElement("div");
-    const what = document.createElement("div");
-    what.className = "what " + e.change;
-    what.textContent = (e.change === "up" ? "▲ " : "▼ ") + label(e);
-    const nums = document.createElement("div");
-    nums.className = "nums";
-    nums.textContent = num(e.from) + " ← " + num(e.to);
-    left.append(what, nums);
-
-    const time = document.createElement("div");
-    time.className = "time";
-    time.textContent = fmtTime.format(when);
-
-    item.append(left, time);
+    const item = el("div", "item");
+    const left = el("div");
+    const icon = e.change === "up" ? "▲ " : e.change === "down" ? "▼ " : "✎ ";
+    left.appendChild(el("div", "what " + e.change, icon + label(e)));
+    const text = (e.type === "name" || e.type === "bio")
+      ? (e.from || "—") + " ← " + (e.to || "—")
+      : num(e.from) + " ← " + num(e.to);
+    left.appendChild(el("div", "nums", text));
+    item.append(left, el("div", "time", fmtTime.format(when)));
     box.appendChild(item);
   });
+}
+
+function render(latest, log) {
+  document.getElementById("followers").textContent = num(latest.followers);
+  document.getElementById("following").textContent = num(latest.following);
+  document.getElementById("videos").textContent = num(latest.videos);
+  document.getElementById("likes").textContent = num(latest.likes);
+  if (latest.name) document.getElementById("name").textContent = latest.name;
+  document.getElementById("bio").textContent = latest.bio || "";
+  const t = new Date(latest.checked_at);
+  document.getElementById("checked").textContent =
+    "آخر فحص: " + fmtDay.format(t) + " " + fmtTime.format(t);
+  renderSummary(log);
+  renderChart(latest, log);
+  renderLog(log);
 }
 
 async function load() {
