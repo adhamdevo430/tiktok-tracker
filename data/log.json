@@ -5,5 +5,19 @@
   "change": "down",
   "from": 299,
   "to": 298
+ },
+ {
+  "time": "2026-10-31T23:52:09+00:00",
+  "type": "followers",
+  "change": "down",
+  "from": 417,
+  "to": 0
+ },
+ {
+  "time": "2026-10-31T23:52:09+00:00",
+  "type": "following",
+  "change": "down",
+  "from": 298,
+  "to": 0
  }
 ]
