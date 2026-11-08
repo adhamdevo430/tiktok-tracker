@@ -54,5 +54,12 @@
   "change": "down",
   "from": 298,
   "to": 297
+ },
+ {
+  "time": "2026-11-08T22:22:11+00:00",
+  "type": "followers",
+  "change": "down",
+  "from": 416,
+  "to": 414
  }
 ]
