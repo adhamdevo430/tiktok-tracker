@@ -68,5 +68,12 @@
   "change": "down",
   "from": 297,
   "to": 296
+ },
+ {
+  "time": "2026-11-17T17:52:08+00:00",
+  "type": "following",
+  "change": "up",
+  "from": 296,
+  "to": 297
  }
 ]
