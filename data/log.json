@@ -89,5 +89,19 @@
   "change": "down",
   "from": 297,
   "to": 0
+ },
+ {
+  "time": "2026-11-23T14:52:15+00:00",
+  "type": "followers",
+  "change": "up",
+  "from": 0,
+  "to": 414
+ },
+ {
+  "time": "2026-11-23T14:52:15+00:00",
+  "type": "following",
+  "change": "up",
+  "from": 0,
+  "to": 297
  }
 ]
