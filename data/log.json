@@ -103,5 +103,12 @@
   "change": "up",
   "from": 0,
   "to": 297
+ },
+ {
+  "time": "2026-11-23T21:07:09+00:00",
+  "type": "followers",
+  "change": "down",
+  "from": 414,
+  "to": 413
  }
 ]
