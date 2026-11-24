@@ -110,5 +110,12 @@
   "change": "down",
   "from": 414,
   "to": 413
+ },
+ {
+  "time": "2026-11-24T17:07:10+00:00",
+  "type": "following",
+  "change": "down",
+  "from": 297,
+  "to": 296
  }
 ]
